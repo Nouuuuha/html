@@ -1,47 +1,47 @@
 import pandas as pd
-import numpy as np
-import random
+import copy
 
-def distance(point1, point2):
-    """Calcul de la distance euclidienne entre deux points"""
-    return np.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
-
-def total_distance(points_order, points):
-    """Calcul de la distance totale parcourue en visitant les points dans l'ordre donné"""
+# Function to calculate the total distance of a tour
+def total_distance(tour, distance_matrix):
     total = 0
-    for i in range(len(points_order)-1):
-        total += distance(points[points_order[i]], points[points_order[i+1]])
+    for i in range(len(tour) - 1):
+        j = i + 1
+        total += distance_matrix[tour[i]][tour[j]]
+    total += distance_matrix[tour[0]][tour[-1]]  # Add distance from last to first point
     return total
 
-def descente_2_echanges(points):
-    """Algorithme de la plus forte descente 2-échanges"""
-    n = len(points)
-    # Générer une solution initiale aléatoire
-    solution_actuelle = list(range(n))
-    random.shuffle(solution_actuelle)
-    meilleure_solution = solution_actuelle.copy()
-    meilleure_distance = total_distance(meilleure_solution, points)
-    amelioration = True
-    while amelioration:
-        amelioration = False
-        for i in range(n-1):
-            for j in range(i+1, n):
-                nouvelle_solution = meilleure_solution[:i] + meilleure_solution[i:j][::-1] + meilleure_solution[j:]
-                nouvelle_distance = total_distance(nouvelle_solution, points)
-                if nouvelle_distance < meilleure_distance:
-                    meilleure_solution = nouvelle_solution
-                    meilleure_distance = nouvelle_distance
-                    amelioration = True
-    return meilleure_solution, meilleure_distance
+# Function to implement the 2-opt swap
+def two_opt_swap(tour, i, j):
+    new_tour = copy.deepcopy(tour)
+    sub_tour = new_tour[i:j + 1]
+    sub_tour.reverse()
+    new_tour[i:j + 1] = sub_tour
+    return new_tour
 
-# Charger les données à partir du fichier Excel
-data = pd.read_excel('points.xlsx')
+# Load distance matrix from Excel file
+def load_distance_matrix_from_excel(file_path):
+    data = pd.read_excel(file_path, header=None)
+    distance_matrix = data.values.tolist()
+    return distance_matrix
 
-# Convertir les données en liste de tuples de coordonnées (x, y)
-points = [(row['x'], row['y']) for index, row in data.iterrows()]
+# Main code
+file_path = 'distance_matrix.xlsx'  # Update with your file path
+distance_matrix = load_distance_matrix_from_excel(file_path)
 
-# Appliquer l'algorithme de la plus forte descente 2-échanges
-meilleure_solution, meilleure_distance = descente_2_echanges(points)
+# Initial tour (can be any order)
+initial_tour = [0, 1, 2, 3, 4]
 
-print("Meilleure solution trouvée:", meilleure_solution)
-print("Distance totale parcourue:", meilleure_distance)
+# Main optimization loop
+improved = True
+while improved:
+    improved = False
+    for i in range(1, len(initial_tour) - 2):
+        for j in range(i + 1, len(initial_tour) - 1):
+            new_tour = two_opt_swap(initial_tour, i, j)
+            if total_distance(new_tour, distance_matrix) < total_distance(initial_tour, distance_matrix):
+                initial_tour = new_tour
+                improved = True
+
+# Print the optimized tour and its total distance
+print("Optimized tour:", initial_tour)
+print("Total distance:", total_distance(initial_tour, distance_matrix))
