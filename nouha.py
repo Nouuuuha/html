@@ -25,7 +25,7 @@ def load_distance_matrix_from_excel(file_path):
     return distance_matrix
 
 # Main code
-file_path = 'distance_matrix.xlsx'  # Update with your file path
+file_path = input("Entrer le lien de votre fichier excel ")  # Update with your file path
 distance_matrix = load_distance_matrix_from_excel(file_path)
 
 # Initial tour (can be any order)
