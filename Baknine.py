@@ -1,43 +1,53 @@
+import streamlit as st
 import pandas as pd
 import numpy as np
 
+
 def read_excel_file(file_path):
     """
-    Read the Excel file and return the distance matrix.
+    Reads the distance matrix from an uploaded Excel file.
+
+    Args:
+        file_path (str): Path to the uploaded Excel file.
+
+    Returns:
+        tuple: A tuple containing the distance matrix (2D array) and city names (list).
+
+    Raises:
+        FileNotFoundError: If the specified file is not found.
     """
-    df = pd.read_excel(file_path, index_col=0)
-    return df.values, df.index.tolist()
+
+    try:
+        df = pd.read_excel(file_path, index_col=0)
+        return df.values, df.index.tolist()
+    except FileNotFoundError:
+        st.error("Error: File not found. Please upload a valid Excel file.")
+        return None, None
+
 
 def la_plus_forte_descente_2_echanges(distances):
     """
-    Apply the 'la plus forte descente 2-echanges' algorithm to find the best route.
+    Apply the 2-opt algorithm to find the best route.
     """
     n = len(distances)
     # Initialize the current route randomly
     current_route = np.random.permutation(n)
     best_distance = calculate_distance(current_route, distances)
 
-    # Number of iterations
-    max_iterations = 1000
-    iteration = 0
-
-    # Main loop of the algorithm
-    while iteration < max_iterations:
-        # Generate two random indices
-        i, j = np.random.choice(n, 2, replace=False)
-        # Swap the cities at indices i and j
-        new_route = current_route.copy()
-        new_route[i], new_route[j] = new_route[j], new_route[i]
-        # Calculate the new distance
-        new_distance = calculate_distance(new_route, distances)
-        # If the new distance is better, update the current route and best distance
-        if new_distance < best_distance:
-            current_route = new_route
-            best_distance = new_distance
-        iteration += 1
+    improvement = True
+    while improvement:
+        improvement = False
+        for i in range(n):
+            for j in range(i + 2, n + (i > 0)):
+                new_route = current_route.copy()
+                new_route[i:(j % n) + 1] = list(reversed(current_route[i:(j % n) + 1]))
+                new_distance = calculate_distance(new_route, distances)
+                if new_distance < best_distance:
+                    current_route = new_route
+                    best_distance = new_distance
+                    improvement = True
 
     return current_route, best_distance
-
 def calculate_distance(route, distances):
     """
     Calculate the total distance of a route.
@@ -45,21 +55,26 @@ def calculate_distance(route, distances):
     total_distance = 0
     for i in range(len(route) - 1):
         total_distance += distances[route[i], route[i + 1]]
-    total_distance += distances[route[-1], route[0]]  # Return to the starting city
     return total_distance
 
-if __name__ == "__main__":
-    # File path of the Excel file
-    excel_file_path = input("Veuillez saisir le chemin du fichier Excel : ")
-    
-    # Read the Excel file
-    distances, city_names = read_excel_file(excel_file_path)
 
-    # Apply the algorithm
-    best_route, best_distance = la_plus_forte_descente_2_echanges(distances)
+# Streamlit app
+st.title("Tour Optimization App")
 
-    # Output the best route and distance
-    print("Best route:", best_route)
-    print("Best distance:", best_distance)
+# Option 1: Upload an Excel file
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
+if uploaded_file is not None:
+    # Read the distance matrix and city names (if file uploaded)
+    distance_matrix, city_names = read_excel_file(uploaded_file)
 
+    if distance_matrix is not None:
+        # Run the optimization algorithm if the file is valid
+        best_route, best_distance = la_plus_forte_descente_2_echanges(distance_matrix)
+
+        st.header("Results")
+        st.subheader("Optimal Route")
+        st.write(" -> ".join([city_names[i] for i in best_route]))
+        st.write(best_distance)
+else:
+    st.info("Please upload an Excel file containing the distance matrix.")
