@@ -50,7 +50,7 @@ def calculate_distance(route, distances):
 
 if __name__ == "__main__":
     # File path of the Excel file
-    excel_file_path = "Classeur1.xlsx"
+    excel_file_path = input("Veuillez saisir le chemin du fichier Excel : ")
     
     # Read the Excel file
     distances, city_names = read_excel_file(excel_file_path)
